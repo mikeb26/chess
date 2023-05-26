@@ -190,6 +190,41 @@ func TestScannerWithNested(t *testing.T) {
 	}
 }
 
+func TestScannerWithNestedAndExpand(t *testing.T) {
+	fname := "fixtures/pgns/0013.pgn"
+	f, err := os.Open(fname)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	scannerOpts := ScannerOpts{ExpandVariations: true}
+	scanner := NewScannerWithOptions(f, scannerOpts)
+	games := []*Game{}
+	for scanner.Scan() {
+		err = scanner.Err()
+		if err != nil && err != io.EOF {
+			t.Fatalf(fname+" Unexpected non-nil/non-EOF err %v", err)
+		}
+		game := scanner.Next()
+		moveList := game.Moves()
+		if len(moveList) == 0 {
+			continue
+		}
+		games = append(games, game)
+	}
+	err = scanner.Err()
+	if err != io.EOF {
+		t.Fatalf(fname+" Unexpected non-EOF err %v", err)
+	}
+	if len(games) != 10 {
+		for idx, g := range games {
+			fmt.Printf("Parsed game %v: %v\n\n", idx, g)
+		}
+		t.Fatalf(fname+" expected 10 games but got %d", len(games))
+	}
+}
+
 func BenchmarkPGN(b *testing.B) {
 	pgn := mustParsePGN("fixtures/pgns/0001.pgn")
 	b.ResetTimer()
